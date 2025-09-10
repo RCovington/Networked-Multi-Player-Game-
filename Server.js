@@ -56,8 +56,8 @@ app.use(express.static(__dirname + '/client'));
 
 // Your IP address is how other devices on a network find this one. The 127.0.0.1 is known as a loop-back address, or
 // otherwise known as 'localhost', which is basically a way for a device to send messages to itself.
-server.listen(3513, "127.0.0.1");
-console.log("Server started on http://127.0.0.1:3513");
+server.listen(3513, "0.0.0.0");
+console.log("Server started on port 3513 (accessible via your EC2 public IP/DNS)");
 
 
 // Used to manage players in the lobby. Each player has a name and ready status.

@@ -3,9 +3,10 @@
 // a state possible without actually being in the state file itself.
 var _this;
 
-// Connect to the Socket.io server that is running on the IP address 127.0.0.1 and at port number 3513.
-var socket = io("http://127.0.0.1:3513");
-// This connects to 127.0.0.1 which is localhost (this computer), which is also where the server is running.
+// Import server configuration
+const config = require('./config');
+// Connect to the Socket.io server using the configured URL
+var socket = io(config.SERVER_URL);
 // If the server was running somewhere else, like on a cloud service, then change the IP address to the
 // public IP address of that device. If on Windows, open a console and type 'ipconfig' to find the IPv4
 // address of a computer.

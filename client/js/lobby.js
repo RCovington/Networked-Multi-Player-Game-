@@ -1,5 +1,7 @@
 // Connect to the Socket.io server
-var socket = io("http://127.0.0.1:3513");
+// Import server configuration
+const config = require('./config');
+var socket = io(config.SERVER_URL);
 
 // Get DOM elements
 var playerNameInput = document.getElementById('playerNameInput');
