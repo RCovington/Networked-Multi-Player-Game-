@@ -3,8 +3,8 @@
 // a state possible without actually being in the state file itself.
 var _this;
 
-// Connect to the Socket.io server that is running on the IP address 127.0.0.1 and at port number 3512.
-var socket = io("http://127.0.0.1:3512");
+// Connect to the Socket.io server that is running on the IP address 127.0.0.1 and at port number 3513.
+var socket = io("http://127.0.0.1:3513");
 // This connects to 127.0.0.1 which is localhost (this computer), which is also where the server is running.
 // If the server was running somewhere else, like on a cloud service, then change the IP address to the
 // public IP address of that device. If on Windows, open a console and type 'ipconfig' to find the IPv4
@@ -44,6 +44,19 @@ socket.on('join_game_success', function () {
     console.log("* Starting Game state.");
     // This player joined the game. Start the 'Game' state.
     _this.state.start("Game");
+});
+
+// Handle automatic game joining for sprite game
+socket.on('connect', function() {
+    console.log('Connected to server for sprite game');
+    // Check if we're on the sprites page and auto-join the game
+    if (window.location.pathname.includes('sprites.html')) {
+        console.log('Auto-joining sprite game...');
+        // Small delay to ensure game state is ready
+        setTimeout(function() {
+            socket.emit('join_game');
+        }, 500);
+    }
 });
 
 socket.on('remove_player', function (data) {

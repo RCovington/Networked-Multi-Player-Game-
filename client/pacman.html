@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Multiplayer Pac-Man</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: #ffff00;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #000;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #0000ff;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #0000ff;
+            background-color: #000;
+            display: block;
+            margin: 20px auto;
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            color: #ffff00;
+        }
+        
+        .player-list {
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .player-item {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #001122;
+            border-radius: 3px;
+        }
+        
+        .return-btn {
+            background: #f39c12;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        
+        .return-btn:hover {
+            background: #e67e22;
+        }
+        
+        .touch-controls {
+            margin: 15px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .arrow-row {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .arrow-btn {
+            width: 50px;
+            height: 50px;
+            background: #f39c12;
+            color: white;
+            border: 2px solid #e67e22;
+            border-radius: 8px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.1s;
+        }
+        
+        .arrow-btn:hover {
+            background: #e67e22;
+            transform: scale(1.05);
+        }
+        
+        .arrow-btn:active {
+            background: #d35400;
+            transform: scale(0.95);
+        }
+        
+        @media (max-width: 768px) {
+            .arrow-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+        }
+    </style>
+    <script src="js/lib/socket.io-1.7.3.min.js"></script>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>🟡 Multiplayer Pac-Man 👻</h1>
+    
+    <div class="game-info">
+        <div>Score: <span id="playerScore">0</span></div>
+        <div>Pellets Left: <span id="pelletsLeft">0</span></div>
+        <div>Players: <span id="playerCount">0</span></div>
+    </div>
+    
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    
+    <div class="controls">
+        <p><strong>Controls:</strong> Use arrow keys, WASD, or touch buttons to move</p>
+        <div class="touch-controls">
+            <div class="arrow-row">
+                <button class="arrow-btn" id="up-btn">↑</button>
+            </div>
+            <div class="arrow-row">
+                <button class="arrow-btn" id="left-btn">←</button>
+                <button class="arrow-btn" id="down-btn">↓</button>
+                <button class="arrow-btn" id="right-btn">→</button>
+            </div>
+        </div>
+        <p>Collect pellets and avoid ghosts! Work together with other players!</p>
+    </div>
+    
+    <div class="player-list">
+        <h3>Players</h3>
+        <div id="playersContainer"></div>
+    </div>
+    
+    <button class="return-btn" onclick="returnToLobby()">Return to Lobby</button>
+</div>
+
+<script src="js/pacman.js"></script>
+
+</body>
+</html>

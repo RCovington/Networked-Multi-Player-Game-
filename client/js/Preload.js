@@ -10,6 +10,7 @@ FunkyMultiplayerGame.Preload.prototype = {
     },
 
     create: function () {
-        this.state.start("Menu");
+        // Skip menu and go directly to game since players are already in the game
+        this.state.start("Game");
     }
 };
