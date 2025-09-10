@@ -1,7 +1,6 @@
 // Pac-Man multiplayer game client
-// Import server configuration
-const config = require('./config');
-var socket = io(config.SERVER_URL);
+// Using global SERVER_CONFIG from config.js
+var socket = io(SERVER_CONFIG.SERVER_URL);
 
 // Game elements
 var canvas = document.getElementById('gameCanvas');

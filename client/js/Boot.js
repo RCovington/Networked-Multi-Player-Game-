@@ -3,10 +3,8 @@
 // a state possible without actually being in the state file itself.
 var _this;
 
-// Import server configuration
-const config = require('./config');
-// Connect to the Socket.io server using the configured URL
-var socket = io(config.SERVER_URL);
+// Using global SERVER_CONFIG from config.js
+var socket = io(SERVER_CONFIG.SERVER_URL);
 // If the server was running somewhere else, like on a cloud service, then change the IP address to the
 // public IP address of that device. If on Windows, open a console and type 'ipconfig' to find the IPv4
 // address of a computer.
