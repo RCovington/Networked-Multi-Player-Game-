@@ -13,10 +13,13 @@ var definitionsContainer = document.getElementById('definitionsContainer');
 var resultsSection = document.getElementById('resultsSection');
 var resultsContainer = document.getElementById('resultsContainer');
 var statusMessage = document.getElementById('statusMessage');
+var countdownElement = document.getElementById('countdownTimer');
 
 var currentRound = 0;
 var hasSubmitted = false;
 var hasVoted = false;
+var countdownTimer;
+var timeLeft = 45;
 
 // Event listeners
 submitBtn.addEventListener('click', function() {
@@ -34,22 +37,77 @@ function submitDefinition() {
     
     var definition = definitionInput.value.trim();
     if (!definition) {
-        alert('Please enter a definition!');
-        return;
+        if (timeLeft <= 0) {
+            definition = "I ran out of time to think of something clever!";
+        } else {
+            alert('Please enter a definition!');
+            return;
+        }
     }
     
     if (definition.length < 5) {
-        alert('Please enter a longer definition!');
-        return;
+        if (timeLeft <= 0) {
+            definition = definition.padEnd(5, '.');
+        } else {
+            alert('Please enter a longer definition!');
+            return;
+        }
     }
     
     socket.emit('fictionary_submit_definition', { definition: definition });
     hasSubmitted = true;
     
+    // Stop the countdown timer
+    if (countdownTimer) {
+        clearInterval(countdownTimer);
+    }
+    
     // Hide input section and show waiting message
     wordSection.style.display = 'none';
     statusMessage.textContent = 'Definition submitted! Waiting for other players...';
     submitBtn.disabled = true;
+}
+
+function startCountdown() {
+    // Clear any existing timer
+    if (countdownTimer) {
+        clearInterval(countdownTimer);
+    }
+    
+    // Reset time and display
+    timeLeft = 45;
+    updateCountdownDisplay();
+    
+    // Start countdown
+    countdownTimer = setInterval(function() {
+        timeLeft--;
+        updateCountdownDisplay();
+        
+        if (timeLeft <= 0) {
+            clearInterval(countdownTimer);
+            if (!hasSubmitted) {
+                submitDefinition();
+            }
+        }
+    }, 1000);
+}
+
+function updateCountdownDisplay() {
+    if (countdownElement) {
+        countdownElement.textContent = timeLeft + ' seconds remaining';
+        
+        // Change color based on time remaining
+        if (timeLeft <= 10) {
+            countdownElement.style.color = '#e74c3c'; // Red when time is running out
+            countdownElement.style.borderColor = '#e74c3c';
+        } else if (timeLeft <= 20) {
+            countdownElement.style.color = '#f39c12'; // Orange when getting low
+            countdownElement.style.borderColor = '#f39c12';
+        } else {
+            countdownElement.style.color = '#f39c12'; // Yellow otherwise
+            countdownElement.style.borderColor = '#f39c12';
+        }
+    }
 }
 
 // Socket event listeners
@@ -88,14 +146,32 @@ socket.on('fictionary_round_start', function(data) {
     definitionsSection.style.display = 'none';
     resultsSection.style.display = 'none';
     
+    // Ensure timer is visible
+    if (countdownElement) {
+        countdownElement.style.display = 'block';
+    }
+    
     definitionInput.value = '';
     definitionInput.focus();
     submitBtn.disabled = false;
     statusMessage.textContent = '';
+    
+    // Start the countdown timer
+    startCountdown();
 });
 
 socket.on('fictionary_show_definitions', function(data) {
     console.log('Showing definitions for voting:', data);
+    
+    // Stop the countdown timer
+    if (countdownTimer) {
+        clearInterval(countdownTimer);
+    }
+    
+    // Hide countdown timer during voting phase
+    if (countdownElement) {
+        countdownElement.style.display = 'none';
+    }
     
     // Hide input section
     wordSection.style.display = 'none';
@@ -114,15 +190,29 @@ socket.on('fictionary_show_definitions', function(data) {
         defText.className = 'definition-text';
         defText.textContent = (index + 1) + '. ' + def.definition;
         
-        var voteBtn = document.createElement('button');
-        voteBtn.className = 'vote-btn';
-        voteBtn.textContent = 'Vote';
-        voteBtn.onclick = function() {
-            voteForDefinition(def.playerId);
-        };
-        
         defItem.appendChild(defText);
-        defItem.appendChild(voteBtn);
+        
+        // Only add vote button if this is not the current player's definition
+        if (def.playerId !== socket.id) {
+            var voteBtn = document.createElement('button');
+            voteBtn.className = 'vote-btn';
+            voteBtn.textContent = 'Vote';
+            voteBtn.onclick = function() {
+                voteForDefinition(def.playerId);
+            };
+            defItem.appendChild(voteBtn);
+        } else {
+            // Add a label to indicate this is the player's own definition
+            var ownDefLabel = document.createElement('div');
+            ownDefLabel.className = 'own-definition-label';
+            ownDefLabel.textContent = 'Your Definition';
+            ownDefLabel.style.color = '#f39c12';
+            ownDefLabel.style.fontStyle = 'italic';
+            ownDefLabel.style.fontSize = '14px';
+            ownDefLabel.style.marginLeft = '15px';
+            defItem.appendChild(ownDefLabel);
+        }
+        
         definitionsContainer.appendChild(defItem);
     });
     
@@ -132,35 +222,78 @@ socket.on('fictionary_show_definitions', function(data) {
 socket.on('fictionary_round_results', function(data) {
     console.log('Fictionary round results:', data);
     
+    // Hide countdown timer during results phase
+    if (countdownElement) {
+        countdownElement.style.display = 'none';
+    }
+    
     definitionsSection.style.display = 'none';
     resultsSection.style.display = 'block';
     
-    var resultsHtml = '<h3>Round ' + currentRound + ' Results</h3>';
-    resultsHtml += '<div class="score-display"><strong>Word:</strong> ' + data.word + '</div>';
-    resultsHtml += '<div class="score-display"><strong>Real Definition:</strong> ' + data.realDefinition + '</div>';
+    var resultsHtml = '<div class="results-header"><h3>Round ' + currentRound + ' Results</h3></div>';
     
-    // Show scoring breakdown
+    // Correct Definition Section
+    resultsHtml += '<div class="correct-definition-section">';
+    resultsHtml += '<h4 class="section-header correct-header">📖 Correct Answer</h4>';
+    resultsHtml += '<div class="word-info"><strong>Word:</strong> <span class="highlight-word">' + data.word + '</span></div>';
+    resultsHtml += '<div class="definition-info"><strong>Real Definition:</strong> <span class="real-definition">' + data.realDefinition + '</span></div>';
+    resultsHtml += '</div>';
+    
+    // Points Awarded Section
     if (data.scoringBreakdown && data.scoringBreakdown.length > 0) {
-        resultsHtml += '<h4>Points Awarded This Round:</h4>';
+        resultsHtml += '<div class="points-section">';
+        resultsHtml += '<h4 class="section-header points-header">🏆 Points Awarded This Round</h4>';
         data.scoringBreakdown.forEach(function(scoring) {
-            resultsHtml += '<div class="score-display">';
-            resultsHtml += '<strong>' + scoring.name + ':</strong> <span style="color: #f39c12; font-weight: bold; font-size: 200%;">+' + scoring.pointsThisRound + '</span> <span style="color: #f39c12; font-weight: bold;">points</span><br>';
+            resultsHtml += '<div class="player-points-card">';
+            resultsHtml += '<div class="player-name-prominent">' + scoring.name + '</div>';
+            resultsHtml += '<div class="points-earned">+' + scoring.pointsThisRound + ' points</div>';
+            resultsHtml += '<div class="points-reasons">';
             scoring.reasons.forEach(function(reason) {
-                resultsHtml += '<em>• ' + reason + '</em><br>';
+                resultsHtml += '<div class="reason-item">• ' + reason + '</div>';
             });
             resultsHtml += '</div>';
+            resultsHtml += '</div>';
         });
+        resultsHtml += '</div>';
     }
     
-    resultsHtml += '<h4>Player Definitions & Votes:</h4>';
+    // Player Definitions Section
+    resultsHtml += '<div class="definitions-section">';
+    resultsHtml += '<h4 class="section-header definitions-header">📝 Player Definitions & Votes</h4>';
     data.playerScores.forEach(function(player) {
         var votesReceived = data.voteCounts[player.name] || 0;
-        resultsHtml += '<div class="score-display">';
-        resultsHtml += '<strong>' + player.name + ':</strong> <span style="color: #27ae60; font-weight: bold; font-size: 200%;">' + player.score + '</span> <span style="color: #27ae60; font-weight: bold;">points total</span><br>';
-        resultsHtml += '<em>Definition:</em> "' + player.definition + '"<br>';
-        resultsHtml += '<em>Votes received:</em> ' + votesReceived;
+        resultsHtml += '<div class="player-definition-card">';
+        resultsHtml += '<div class="player-name-prominent">' + player.name + '</div>';
+        resultsHtml += '<div class="total-score">' + player.score + ' points total</div>';
+        resultsHtml += '<div class="definition-text">"' + player.definition + '"</div>';
+        resultsHtml += '<div class="votes-info">Votes received: <span class="vote-count">' + votesReceived + '</span></div>';
         resultsHtml += '</div>';
     });
+    resultsHtml += '</div>';
+    
+    // Current Total Scores Section
+    resultsHtml += '<div class="total-scores-section">';
+    resultsHtml += '<h4 class="section-header total-scores-header">📊 Current Total Scores</h4>';
+    
+    // Sort players by total score for leaderboard display
+    var sortedPlayers = data.playerScores.slice().sort(function(a, b) {
+        return b.score - a.score;
+    });
+    
+    sortedPlayers.forEach(function(player, index) {
+        var position = index + 1;
+        var medal = '';
+        if (position === 1) medal = '🥇 ';
+        else if (position === 2) medal = '🥈 ';
+        else if (position === 3) medal = '🥉 ';
+        
+        resultsHtml += '<div class="total-score-card">';
+        resultsHtml += '<div class="score-position">' + medal + '#' + position + '</div>';
+        resultsHtml += '<div class="player-name-prominent">' + player.name + '</div>';
+        resultsHtml += '<div class="current-total-score">' + player.score + ' points</div>';
+        resultsHtml += '</div>';
+    });
+    resultsHtml += '</div>';
     
     resultsContainer.innerHTML = resultsHtml;
     
@@ -173,6 +306,11 @@ socket.on('fictionary_round_results', function(data) {
 
 socket.on('fictionary_game_over', function(data) {
     console.log('Fictionary game over:', data);
+    
+    // Hide countdown timer during game over phase
+    if (countdownElement) {
+        countdownElement.style.display = 'none';
+    }
     
     definitionsSection.style.display = 'none';
     resultsSection.style.display = 'block';

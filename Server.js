@@ -29,6 +29,12 @@
 // Strict mode helps to prevent the use of weird things that you might do in javascript by accident.
 "use strict";
 
+// Parse command line arguments
+var args = process.argv.slice(2);
+var isDeveloperMode = args.includes('-d') || args.includes('--dev');
+
+console.log("Starting server in " + (isDeveloperMode ? "DEVELOPER" : "PRODUCTION") + " mode");
+
 // Gathering dependencies. The require(...) bit imports the stuff that was installed through npm.
 var express = require('express');
 // Create an Express app. Socket.io just sits on top of Express, but Express itself isn't
@@ -52,12 +58,46 @@ var io = require('socket.io')(server);
 app.get('/',function(req, res) {
 	res.sendFile(__dirname + '/client/index.html');
 });
+
+// Serve dynamic configuration based on mode
+app.get('/js/config.js', function(req, res) {
+	var serverUrl;
+	if (isDeveloperMode) {
+		serverUrl = 'http://localhost:3513';
+	} else {
+		serverUrl = 'http://ec2-34-217-51-125.us-west-2.compute.amazonaws.com:3513';
+	}
+	
+	var configContent = `// Server configuration (${isDeveloperMode ? 'DEVELOPER' : 'PRODUCTION'} mode)
+window.SERVER_CONFIG = {
+    SERVER_URL: '${serverUrl}'
+};
+
+// For CommonJS compatibility (Node.js)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = window.SERVER_CONFIG;
+}
+`;
+	
+	res.setHeader('Content-Type', 'application/javascript');
+	res.send(configContent);
+});
+
 app.use(express.static(__dirname + '/client'));
 
 // Your IP address is how other devices on a network find this one. The 127.0.0.1 is known as a loop-back address, or
 // otherwise known as 'localhost', which is basically a way for a device to send messages to itself.
 server.listen(3513, "0.0.0.0");
-console.log("Server started on port 3513 (accessible via your EC2 public IP/DNS)");
+
+if (isDeveloperMode) {
+    console.log("Server started on port 3513 in DEVELOPER mode");
+    console.log("Access the game at: http://localhost:3513");
+    console.log("Client will connect to: http://localhost:3513");
+} else {
+    console.log("Server started on port 3513 in PRODUCTION mode");
+    console.log("Server accessible via your EC2 public IP/DNS");
+    console.log("Client will connect to: http://ec2-34-217-51-125.us-west-2.compute.amazonaws.com:3513");
+}
 
 
 // Used to manage players in the lobby. Each player has a name and ready status.

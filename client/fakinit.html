@@ -3,6 +3,7 @@
 <head>
     <title>Fakin' It Game</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -124,6 +125,69 @@
         .status-message {
             font-size: 16px;
             margin: 15px 0;
+        }
+        
+        /* Mobile responsive styles */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .game-container {
+                max-width: 95%;
+                padding: 20px 15px;
+                margin: 0 auto;
+            }
+            
+            .game-header h1 {
+                font-size: 28px;
+            }
+            
+            .game-header p {
+                font-size: 18px;
+            }
+            
+            .round-info h3 {
+                font-size: 22px;
+            }
+            
+            .prompt-text {
+                font-size: 20px;
+                padding: 20px;
+            }
+            
+            .answer-input {
+                width: 90%;
+                font-size: 18px;
+                padding: 18px;
+                margin: 20px 0;
+                box-sizing: border-box;
+            }
+            
+            .submit-btn {
+                font-size: 18px;
+                padding: 15px 30px;
+                width: 90%;
+                max-width: 300px;
+            }
+            
+            .player-answer {
+                padding: 18px;
+                margin: 15px 0;
+                font-size: 16px;
+            }
+            
+            .vote-btn {
+                font-size: 16px;
+                padding: 12px 20px;
+                width: 100%;
+                max-width: 150px;
+                margin-top: 10px;
+            }
+            
+            .status-message {
+                font-size: 18px;
+            }
         }
     </style>
 

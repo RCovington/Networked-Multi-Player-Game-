@@ -3,6 +3,7 @@
 <head>
     <title>Multiplayer Game Lobby</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -171,6 +172,95 @@
             color: #f39c12;
             font-style: italic;
             margin-left: 10px;
+        }
+        
+        /* Mobile responsive styles */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .lobby-container {
+                max-width: 95%;
+                padding: 20px 15px;
+                margin: 0 auto;
+            }
+            
+            .lobby-header h1 {
+                font-size: 28px;
+            }
+            
+            .lobby-header p {
+                font-size: 18px;
+            }
+            
+            .name-input {
+                width: 100%;
+                max-width: none;
+                font-size: 18px;
+                padding: 15px;
+                margin-bottom: 15px;
+                margin-right: 0;
+                box-sizing: border-box;
+            }
+            
+            .join-btn {
+                width: 100%;
+                font-size: 18px;
+                padding: 15px;
+                box-sizing: border-box;
+            }
+            
+            .ready-label {
+                font-size: 20px;
+            }
+            
+            .ready-checkbox {
+                transform: scale(2);
+                margin-right: 15px;
+            }
+            
+            .game-dropdown {
+                font-size: 18px;
+                padding: 12px;
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .start-game-btn {
+                font-size: 20px;
+                padding: 18px 35px;
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .player-item {
+                padding: 15px;
+                font-size: 16px;
+            }
+            
+            .player-status {
+                font-size: 16px;
+                padding: 8px 12px;
+            }
+            
+            .player-game {
+                font-size: 14px;
+            }
+            
+            .name-section {
+                text-align: left;
+            }
+            
+            .game-selection {
+                text-align: center;
+            }
+            
+            .game-selection label {
+                display: block;
+                margin-bottom: 10px;
+                font-size: 18px;
+            }
         }
     </style>
 
