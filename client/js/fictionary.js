@@ -57,10 +57,8 @@ function submitDefinition() {
     socket.emit('fictionary_submit_definition', { definition: definition });
     hasSubmitted = true;
     
-    // Stop the countdown timer
-    if (countdownTimer) {
-        clearInterval(countdownTimer);
-    }
+    // Keep the countdown timer running - don't stop it
+    // Timer will continue until all players submit or time expires
     
     // Hide input section and show waiting message
     wordSection.style.display = 'none';
