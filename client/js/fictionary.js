@@ -133,12 +133,8 @@ socket.on('fictionary_round_start', function(data) {
     hasSubmitted = false;
     hasVoted = false;
     
-    // Only show round info if not the final round (Round 3)
-    if (data.round < 3) {
-        roundInfo.innerHTML = '<h3>Round ' + data.round + ' - Word: ' + data.word + '</h3>';
-    } else {
-        roundInfo.innerHTML = '<h3>Round ' + data.round + '</h3>';
-    }
+    // Show just the round number (word is displayed prominently below)
+    roundInfo.innerHTML = '<h3>Round ' + data.round + '</h3>';
     wordDisplay.textContent = data.word;
     
     // Show word input section
