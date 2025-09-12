@@ -16,6 +16,14 @@ var errorMessage = document.getElementById('errorMessage');
 
 var isInLobby = false;
 
+// Pre-populate name input with stored name on page load
+window.addEventListener('DOMContentLoaded', function() {
+    var storedName = localStorage.getItem('playerName');
+    if (storedName) {
+        playerNameInput.value = storedName;
+    }
+});
+
 // Event listeners for UI elements
 joinLobbyBtn.addEventListener('click', function() {
     var playerName = playerNameInput.value.trim();
@@ -29,6 +37,9 @@ joinLobbyBtn.addEventListener('click', function() {
         showError('Name must be 12 characters or less');
         return;
     }
+    
+    // Store player name in localStorage for future use
+    localStorage.setItem('playerName', playerName);
     
     // Set player name and join lobby
     socket.emit('set_player_name', { name: playerName });
@@ -114,6 +125,13 @@ socket.on('transition_to_fictionary', function() {
     window.location.href = 'fictionary.html';
 });
 
+socket.on('transition_to_scriptionary', function() {
+    console.log('Transitioning to Scriptionary game');
+    // Store player name in localStorage for the Scriptionary game
+    localStorage.setItem('playerName', playerNameInput.value);
+    window.location.href = 'scriptionary.html';
+});
+
 socket.on('transition_to_pacman', function() {
     console.log('Transitioning to Pac-Man game');
     // Store player name in localStorage for the Pac-Man game
@@ -193,7 +211,7 @@ function resetLobbyUI() {
     readySection.style.display = 'none';
     playersList.style.display = 'none';
     readyCheckbox.checked = false;
-    playerNameInput.value = '';
+    // Don't clear the player name - keep it for convenience
 }
 
 // Remove the old socket event listeners that are no longer needed

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Scriptionary Game</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2c3e50;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .game-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #34495e;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .game-header {
+            margin-bottom: 30px;
+        }
+        
+        .game-header h1 {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .round-info {
+            background-color: #2c3e50;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .word-section {
+            background-color: #34495e;
+            padding: 25px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            display: none;
+        }
+        
+        .word-display {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #ecf0f1;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            line-height: 1.2;
+        }
+        
+        .definition-input {
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            margin: 15px;
+            width: 80%;
+            max-width: 500px;
+        }
+        
+        .submit-btn {
+            padding: 12px 25px;
+            font-size: 16px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        
+        .submit-btn:hover {
+            background-color: #229954;
+        }
+        
+        .submit-btn:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+        }
+        
+        .definitions-section {
+            background-color: #2c3e50;
+            padding: 25px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            display: none;
+        }
+        
+        .definition-item {
+            background-color: #34495e;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+        }
+        
+        .definition-text {
+            flex: 1;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+        
+        .vote-btn {
+            padding: 8px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 15px;
+        }
+        
+        .vote-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .vote-btn:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+        }
+        
+        .results-section {
+            background-color: #2c3e50;
+            padding: 25px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            display: none;
+        }
+        
+        .status-message {
+            font-size: 18px;
+            margin: 20px 0;
+            color: #f39c12;
+        }
+        
+        .score-display {
+            background-color: #34495e;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .waiting-message {
+            font-size: 18px;
+            color: #f39c12;
+            margin: 20px 0;
+        }
+        
+        .countdown-timer {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f39c12;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            border: 2px solid #f39c12;
+        }
+        
+        /* Mobile responsive styles */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .game-container {
+                max-width: 95%;
+                padding: 20px 15px;
+                margin: 0 auto;
+            }
+            
+            .game-header h1 {
+                font-size: 28px;
+            }
+            
+            .game-header p {
+                font-size: 18px;
+            }
+            
+            .round-info h3 {
+                font-size: 22px;
+                margin: 5px 0;
+            }
+            
+            .round-info {
+                padding: 8px 12px;
+                margin-bottom: 10px;
+            }
+            
+            .word-display {
+                font-size: 42px;
+                margin-bottom: 20px;
+            }
+            
+            /* Responsive font sizing for very long words */
+            @media screen and (max-width: 480px) {
+                .word-display {
+                    font-size: clamp(24px, 8vw, 42px);
+                }
+            }
+            
+            @media screen and (max-width: 360px) {
+                .word-display {
+                    font-size: clamp(20px, 7vw, 36px);
+                }
+            }
+            
+            .countdown-timer {
+                font-size: 28px;
+                padding: 15px;
+                margin: 20px 0;
+            }
+            
+            .word-section p {
+                font-size: 18px;
+            }
+            
+            .definition-input {
+                width: 90%;
+                font-size: 18px;
+                padding: 18px;
+                margin: 20px 0;
+                box-sizing: border-box;
+            }
+            
+            .submit-btn {
+                font-size: 18px;
+                padding: 15px 30px;
+                width: 90%;
+                max-width: 300px;
+            }
+            
+            .definitions-section h3 {
+                font-size: 22px;
+            }
+            
+            .definition-item {
+                padding: 18px;
+                margin: 15px 0;
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            
+            .definition-text {
+                font-size: 18px;
+                margin-bottom: 15px;
+                line-height: 1.5;
+            }
+            
+            .vote-btn {
+                font-size: 18px;
+                padding: 12px 25px;
+                margin: 0;
+                width: 100%;
+                max-width: 200px;
+                align-self: center;
+            }
+            
+            .status-message {
+                font-size: 20px;
+            }
+            
+            .score-display {
+                font-size: 16px;
+                padding: 18px;
+                margin: 15px 0;
+            }
+            
+            /* Mobile adjustments for score page elements */
+            .player-name-prominent {
+                font-size: 18px !important;
+                padding: 8px 10px !important;
+                margin-bottom: 8px !important;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            .total-score-card {
+                flex-direction: column !important;
+                text-align: center !important;
+                padding: 15px !important;
+            }
+            
+            .total-score-card .player-name-prominent {
+                margin: 0 0 10px 0 !important;
+                font-size: 16px !important;
+            }
+            
+            .score-position {
+                font-size: 16px !important;
+                min-width: auto !important;
+                margin-bottom: 8px;
+            }
+            
+            .current-total-score {
+                font-size: 18px !important;
+                min-width: auto !important;
+                margin-top: 5px;
+            }
+            
+            .points-earned {
+                font-size: 18px !important;
+            }
+            
+            .total-score {
+                font-size: 16px !important;
+            }
+            
+            .player-points-card, .player-definition-card {
+                padding: 15px !important;
+                margin: 10px 0 !important;
+            }
+        }
+        
+        /* Enhanced score page styling */
+        .results-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .section-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 25px 0 15px 0;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .correct-header {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+        }
+        
+        .points-header {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+        
+        .definitions-header {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+        }
+        
+        .correct-definition-section {
+            background-color: #2c5530;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #27ae60;
+        }
+        
+        .points-section {
+            background-color: #4a3728;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #f39c12;
+        }
+        
+        .definitions-section {
+            background-color: #34495e;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #3498db;
+        }
+        
+        .player-name-prominent {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ecf0f1;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: linear-gradient(45deg, #34495e, #2c3e50);
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .player-points-card, .player-definition-card {
+            background-color: rgba(52, 73, 94, 0.8);
+            margin: 15px 0;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .points-earned {
+            font-size: 20px;
+            font-weight: bold;
+            color: #f39c12;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .total-score {
+            font-size: 18px;
+            font-weight: bold;
+            color: #27ae60;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .points-reasons {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: rgba(241, 196, 15, 0.1);
+            border-radius: 5px;
+        }
+        
+        .reason-item {
+            color: #f1c40f;
+            font-style: italic;
+            margin: 5px 0;
+            padding: 3px 0;
+        }
+        
+        .definition-text {
+            font-size: 16px;
+            font-style: italic;
+            color: #bdc3c7;
+            margin: 15px 0;
+            padding: 15px;
+            background-color: rgba(189, 195, 199, 0.1);
+            border-radius: 5px;
+            border-left: 3px solid #95a5a6;
+        }
+        
+        .votes-info {
+            color: #95a5a6;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .vote-count {
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .word-info, .definition-info {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: rgba(39, 174, 96, 0.1);
+            border-radius: 5px;
+        }
+        
+        .highlight-word {
+            font-size: 20px;
+            font-weight: bold;
+            color: #f1c40f;
+        }
+        
+        .real-definition {
+            color: #2ecc71;
+            font-style: italic;
+        }
+        
+        .total-scores-section {
+            background-color: #2c3e50;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 30px 0 20px 0;
+            border: 3px solid #3498db;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .total-scores-header {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+        
+        .total-score-card {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            margin: 12px 0;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #3498db;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .score-position {
+            font-size: 20px;
+            font-weight: bold;
+            color: #f39c12;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .current-total-score {
+            font-size: 22px;
+            font-weight: bold;
+            color: #2ecc71;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        .total-score-card .player-name-prominent {
+            flex: 1;
+            margin: 0 15px;
+            font-size: 20px;
+        }
+    </style>
+
+    <script src="js/lib/socket.io-1.7.3.min.js"></script>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="game-header">
+        <h1>Scriptionary</h1>
+        <p>Create fake definitions for programming terms and fool your friends!</p>
+    </div>
+    
+    <div id="roundInfo" class="round-info">
+        <h3>Waiting for game to start...</h3>
+    </div>
+    
+    <div id="countdownTimer" class="countdown-timer" style="display: none;">45 seconds remaining</div>
+    
+    <div id="wordSection" class="word-section">
+        <div id="wordDisplay" class="word-display"></div>
+        <p>Create a believable fake definition for this programming term:</p>
+        <input type="text" id="definitionInput" class="definition-input" placeholder="Your fake definition...">
+        <br>
+        <button id="submitBtn" class="submit-btn">Submit Definition</button>
+    </div>
+    
+    <div id="definitionsSection" class="definitions-section">
+        <h3>Vote for the REAL definition!</h3>
+        <div id="votingWordDisplay" class="word-display" style="margin-bottom: 20px;"></div>
+        <div id="definitionsContainer"></div>
+    </div>
+    
+    <div id="resultsSection" class="results-section">
+        <div id="resultsContainer"></div>
+    </div>
+    
+    <div id="statusMessage" class="status-message"></div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/scriptionary.js"></script>
+</body>
+</html>

@@ -37,11 +37,16 @@ console.log("Starting server in " + (isDeveloperMode ? "DEVELOPER" : "PRODUCTION
 
 // Gathering dependencies. The require(...) bit imports the stuff that was installed through npm.
 var express = require('express');
+var http = require('http');
+var path = require('path');
+var socketIO = require('socket.io');
+var fs = require('fs');
+
 // Create an Express app. Socket.io just sits on top of Express, but Express itself isn't
 // used much, unless you want to serve files with it, but that is not recommended.
 var app = express();
 // Make a new HTTP server from Express. This doesn't get used itself either, unless you want to do stuff with it.
-var server = require('http').Server(app);
+var server = http.Server(app);
 // This is where Socket.io is set up. Socket takes in the HTTP server created above, and basically adds it's own
 // layer on top of it that is nice and easy to use. 'io' is the Socket.io server object. You could call it
 // 'socketIOServer' or something similar if you wish, but all of the documentation for Socket.io uses just 'io'.
@@ -56,6 +61,10 @@ var io = require('socket.io')(server);
 
 // Defining route handlers
 app.get('/',function(req, res) {
+	res.sendFile(__dirname + '/client/index.html');
+});
+
+app.get('/lobby',function(req, res) {
 	res.sendFile(__dirname + '/client/index.html');
 });
 
@@ -127,6 +136,41 @@ var fictionaryGame = {
     currentWord: null,
     currentRealDefinition: null,
     waitingForPlayers: false
+};
+
+// Function to load Scriptionary terms from JSON
+function loadScriptonaryTerms() {
+    try {
+        var jsonPath = path.join(__dirname, 'data', 'scriptionary-terms.json');
+        var jsonData = fs.readFileSync(jsonPath, 'utf8');
+        var terms = JSON.parse(jsonData);
+        
+        console.log("* Loaded " + terms.length + " Scriptionary terms from JSON");
+        return terms;
+    } catch (error) {
+        console.error("* Error loading Scriptionary terms from JSON:", error.message);
+        // Fallback to default terms if JSON loading fails
+        return [
+            { category: "LDS Church", word: "Restoration", definition: "The return of the gospel and priesthood authority through Joseph Smith" },
+            { category: "Old Testament", word: "Shalom", definition: "Peace, completeness, or wholeness in Hebrew" },
+            { category: "New Testament", word: "Agape", definition: "Unconditional love, especially the love of God for humanity" }
+        ];
+    }
+}
+
+// Scriptionary game state
+var scriptonaryGame = {
+    players: {},
+    playerNames: [],
+    votes: {},
+    definitions: {},
+    currentRound: 1,
+    currentWord: null,
+    currentDefinition: null,
+    currentCategory: null,
+    gameActive: false,
+    waitingForPlayers: false,
+    words: loadScriptonaryTerms()
 };
 
 /** *   *   *   *   *   *   *   *   *   *   *   *   *   *   *   *   *   *
@@ -268,6 +312,9 @@ io.on('connection', function (socket) {
                 } else if(gameSelection === "Fictionary") {
                     console.log("* Majority selected Fictionary - starting Fictionary game");
                     startFictionaryGame();
+                } else if(gameSelection === "Scriptionary") {
+                    console.log("* Majority selected Scriptionary - starting Scriptionary game");
+                    startScriptonaryGame();
                 } else {
                     console.log("* No majority for specific game, showing generic message. Game: " + gameSelection);
                     // For other games, just show the generic starting message
@@ -422,6 +469,117 @@ io.on('connection', function (socket) {
             
             // Check if all players have voted
             checkAllFictionaryVotesSubmitted();
+        }
+    });
+
+    // Handle Scriptionary game events
+    socket.on('scriptionary_submit_definition', function(data) {
+        if(socket.isInScriptionary && scriptonaryGame.gameActive && data.definition) {
+            console.log("* " + socket.playerName + " submitted definition: " + data.definition);
+            scriptonaryGame.players[socket.id].definition = data.definition;
+            scriptonaryGame.definitions[socket.id] = {
+                playerId: socket.id,
+                playerName: socket.playerName,
+                definition: data.definition,
+                isReal: false
+            };
+            
+            // Check if all players have submitted definitions
+            checkAllScriptonaryDefinitionsSubmitted();
+        }
+    });
+
+    socket.on('scriptionary_vote', function(data) {
+        if(socket.isInScriptionary && scriptonaryGame.gameActive && data.definitionId) {
+            // Debug: Log vote details
+            var votedPlayerName = 'Unknown';
+            if (data.definitionId === 'real') {
+                votedPlayerName = 'Dictionary';
+            } else if (scriptonaryGame.players[data.definitionId]) {
+                votedPlayerName = scriptonaryGame.players[data.definitionId].name;
+            }
+            
+            console.log("* " + socket.playerName + " voted for definition by: " + votedPlayerName + " (ID: " + data.definitionId + ")");
+            console.log("* Vote data received - definitionId: '" + data.definitionId + "' (type: " + typeof data.definitionId + ")");
+            scriptonaryGame.votes[socket.id] = data.definitionId;
+            
+            // Check if all players have voted
+            checkAllScriptonaryVotesSubmitted();
+        }
+    });
+
+    // Handle Scriptionary game join
+    socket.on('join_scriptionary_game', function(data) {
+        console.log("* Player attempting to join Scriptionary game");
+        
+        if (scriptonaryGame.gameActive && scriptonaryGame.waitingForPlayers) {
+            var requestedName = data && data.playerName ? data.playerName : null;
+            var playerName = null;
+            
+            if (requestedName) {
+                // Check if the requested name is in our expected players list
+                if (scriptonaryGame.playerNames.includes(requestedName)) {
+                    // Check if this name is already connected
+                    var alreadyConnected = false;
+                    Object.keys(scriptonaryGame.players).forEach(function(existingSocketId) {
+                        if (scriptonaryGame.players[existingSocketId].name === requestedName) {
+                            alreadyConnected = true;
+                        }
+                    });
+                    
+                    if (!alreadyConnected) {
+                        playerName = requestedName;
+                        console.log("* Using requested player name: " + playerName);
+                    }
+                }
+            }
+            
+            // Fallback to original logic if no valid requested name
+            if (!playerName) {
+                for (var i = 0; i < scriptonaryGame.playerNames.length; i++) {
+                    var name = scriptonaryGame.playerNames[i];
+                    var alreadyConnected = false;
+                    
+                    // Check if this name is already connected
+                    Object.keys(scriptonaryGame.players).forEach(function(existingSocketId) {
+                        if (scriptonaryGame.players[existingSocketId].name === name) {
+                            alreadyConnected = true;
+                        }
+                    });
+                    
+                    if (!alreadyConnected) {
+                        playerName = name;
+                        break;
+                    }
+                }
+            }
+            
+            if (playerName) {
+                socket.playerName = playerName;
+                socket.isInScriptionary = true;
+                socket.join('scriptionary-room');
+                
+                scriptonaryGame.players[socket.id] = {
+                    name: playerName,
+                    score: 0,
+                    definition: null
+                };
+                
+                console.log("* " + playerName + " joined Scriptionary game with new socket ID: " + socket.id);
+                
+                // Check if all players have reconnected
+                if (Object.keys(scriptonaryGame.players).length === scriptonaryGame.playerNames.length) {
+                    console.log("* All players reconnected to Scriptionary, starting first round");
+                    scriptonaryGame.waitingForPlayers = false;
+                    setTimeout(function() {
+                        startScriptonaryRound();
+                    }, 2000);
+                }
+            } else {
+                console.log("* No available player slot for Scriptionary game");
+            }
+        } else {
+            console.log("* Scriptionary game not available for joining");
         }
     });
 
@@ -956,6 +1114,39 @@ function startFictionaryGame() {
     lobbyPlayers = {};
     
     console.log("* Fictionary game initialized, waiting for players to reconnect");
+}
+
+function startScriptonaryGame() {
+    console.log("* startScriptonaryGame() called");
+    
+    // Move all lobby players to the Scriptionary game
+    var keys = Object.keys(lobbyPlayers);
+    console.log("* Converting " + keys.length + " lobby players to Scriptionary players");
+    
+    // Reset game state and store player names separately for reconnection
+    scriptonaryGame.players = {};
+    scriptonaryGame.playerNames = []; // Store names for reconnection
+    scriptonaryGame.votes = {};
+    scriptonaryGame.definitions = {};
+    scriptonaryGame.round = 1;
+    scriptonaryGame.gameActive = true;
+    scriptonaryGame.waitingForPlayers = true;
+    
+    // Store player names for reconnection
+    keys.forEach(function(key) {
+        scriptonaryGame.playerNames.push(lobbyPlayers[key].name);
+    });
+    
+    console.log("* Stored player names: " + scriptonaryGame.playerNames.join(", "));
+    
+    // Send transition event to all players
+    console.log("* Sending transition_to_scriptionary event to lobby-room");
+    io.in('lobby-room').emit('transition_to_scriptionary');
+    
+    // Clear lobby
+    lobbyPlayers = {};
+    
+    console.log("* Scriptionary game initialized, waiting for players to reconnect");
 }
 
 // Pac-Man game state
@@ -1723,4 +1914,207 @@ function preparePlayersDataToSend() {
         dataToSend.push({id: key, x: players[key].x, y: players[key].y});
     });
     return dataToSend;
+}
+
+// Scriptionary game functions
+function startScriptonaryRound() {
+    if (!scriptonaryGame.gameActive) return;
+    
+    console.log("* Starting Scriptionary round " + scriptonaryGame.currentRound);
+    
+    // Select random word from Scriptionary words
+    var wordIndex = Math.floor(Math.random() * scriptonaryGame.words.length);
+    var selectedWord = scriptonaryGame.words[wordIndex];
+    scriptonaryGame.currentWord = selectedWord.word;
+    scriptonaryGame.currentDefinition = selectedWord.definition;
+    scriptonaryGame.currentCategory = selectedWord.category;
+    
+    console.log("* Round word: " + scriptonaryGame.currentWord);
+    console.log("* Real definition: " + scriptonaryGame.currentDefinition);
+    
+    // Reset round data
+    scriptonaryGame.definitions = {};
+    scriptonaryGame.votes = {};
+    
+    // Reset player states
+    Object.keys(scriptonaryGame.players).forEach(function(socketId) {
+        scriptonaryGame.players[socketId].definition = null;
+    });
+    
+    // Send round start to all players
+    io.in('scriptionary-room').emit('scriptionary_round_start', {
+        round: scriptonaryGame.currentRound,
+        word: scriptonaryGame.currentWord,
+        category: scriptonaryGame.currentCategory
+    });
+}
+
+function checkAllScriptonaryDefinitionsSubmitted() {
+    var playerKeys = Object.keys(scriptonaryGame.players);
+    var allSubmitted = playerKeys.every(function(socketId) {
+        return scriptonaryGame.players[socketId].definition;
+    });
+    
+    if (allSubmitted) {
+        console.log("* All Scriptionary definitions submitted, showing voting phase");
+        
+        // Prepare definitions for voting
+        var definitionsArray = [];
+        
+        // Add player definitions
+        Object.keys(scriptonaryGame.definitions).forEach(function(socketId) {
+            definitionsArray.push(scriptonaryGame.definitions[socketId]);
+        });
+        
+        // Add real definition
+        definitionsArray.push({
+            playerId: 'real',
+            playerName: 'Dictionary',
+            definition: scriptonaryGame.currentDefinition,
+            isReal: true
+        });
+        
+        // Shuffle definitions
+        for (var i = definitionsArray.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temp = definitionsArray[i];
+            definitionsArray[i] = definitionsArray[j];
+            definitionsArray[j] = temp;
+        }
+        
+        // Send definitions to all players for voting
+        io.in('scriptionary-room').emit('scriptionary_show_definitions', {
+            definitions: definitionsArray
+        });
+    }
+}
+
+function checkAllScriptonaryVotesSubmitted() {
+    var playerKeys = Object.keys(scriptonaryGame.players);
+    var allVoted = playerKeys.every(function(socketId) {
+        return scriptonaryGame.votes[socketId];
+    });
+    
+    if (allVoted) {
+        console.log("* All Scriptionary votes submitted, calculating results");
+        calculateScriptonaryScores();
+    }
+}
+
+function calculateScriptonaryScores() {
+    console.log("* Calculating Scriptionary scores for round " + scriptonaryGame.currentRound);
+    
+    // Count votes for each definition (excluding self-votes)
+    var voteCounts = {};
+    Object.keys(scriptonaryGame.votes).forEach(function(voterSocketId) {
+        var votedDefinitionId = scriptonaryGame.votes[voterSocketId];
+        
+        // Only count vote if player didn't vote for their own definition
+        if (votedDefinitionId !== voterSocketId) {
+            voteCounts[votedDefinitionId] = (voteCounts[votedDefinitionId] || 0) + 1;
+        }
+    });
+    
+    // Calculate scores
+    Object.keys(scriptonaryGame.players).forEach(function(socketId) {
+        var player = scriptonaryGame.players[socketId];
+        
+        // Points for people voting for your fake definition (1 point per vote)
+        var votesForMyDefinition = voteCounts[socketId] || 0;
+        player.score += votesForMyDefinition * 1;
+        
+        console.log("* " + player.name + " received " + votesForMyDefinition + " votes for their definition, gaining " + (votesForMyDefinition * 1) + " points");
+        
+        // Points for voting for the real definition (2 points)
+        var playerVote = scriptonaryGame.votes[socketId];
+        console.log("* Checking " + player.name + "'s vote: '" + playerVote + "' (type: " + typeof playerVote + ")");
+        
+        if (playerVote === 'real') {
+            player.score += 2;
+            console.log("* " + player.name + " voted for the real definition, gaining 2 points");
+        } else if (playerVote === socketId) {
+            console.log("* " + player.name + " voted for their own definition, no points awarded");
+        } else {
+            console.log("* " + player.name + " voted for another player's fake definition, no points awarded");
+        }
+    });
+    
+    // Create vote counts by player name for client display
+    var voteCountsByName = {};
+    Object.keys(voteCounts).forEach(function(playerId) {
+        if (playerId === 'real') {
+            voteCountsByName['Dictionary'] = voteCounts[playerId];
+        } else if (scriptonaryGame.players[playerId]) {
+            voteCountsByName[scriptonaryGame.players[playerId].name] = voteCounts[playerId];
+        }
+    });
+    
+    // Prepare points awarded this round
+    var pointsAwarded = {};
+    var pointReasons = {};
+    Object.keys(scriptonaryGame.players).forEach(function(socketId) {
+        var player = scriptonaryGame.players[socketId];
+        var votesReceived = voteCounts[socketId] || 0;
+        var votedForReal = scriptonaryGame.votes[socketId] === 'real';
+        
+        pointsAwarded[player.name] = votesReceived + (votedForReal ? 2 : 0);
+        pointReasons[player.name] = [];
+        
+        if (votesReceived > 0) {
+            pointReasons[player.name].push("Fooled " + votesReceived + " player(s)");
+        }
+        if (votedForReal) {
+            pointReasons[player.name].push("Found the real definition");
+        }
+    });
+    
+    // Prepare player scores for results
+    var playerScores = Object.keys(scriptonaryGame.players).map(function(socketId) {
+        return {
+            name: scriptonaryGame.players[socketId].name,
+            score: scriptonaryGame.players[socketId].score,
+            definition: scriptonaryGame.players[socketId].definition
+        };
+    });
+    
+    // Send round results
+    io.in('scriptionary-room').emit('scriptionary_round_results', {
+        word: scriptonaryGame.currentWord,
+        correctDefinition: scriptonaryGame.currentDefinition,
+        playerScores: playerScores,
+        pointsAwarded: pointsAwarded,
+        pointReasons: pointReasons,
+        voteCounts: voteCountsByName
+    });
+    
+    // Check if game should end (after 3 rounds)
+    if (scriptonaryGame.currentRound >= 3) {
+        setTimeout(function() {
+            endScriptonaryGame();
+        }, 10000);
+    } else {
+        // Start next round after delay
+        setTimeout(function() {
+            scriptonaryGame.currentRound++;
+            startScriptonaryRound();
+        }, 10000);
+    }
+}
+
+function endScriptonaryGame() {
+    console.log("* Scriptionary game ended");
+    scriptonaryGame.gameActive = false;
+    
+    // Calculate final scores
+    var finalScores = Object.keys(scriptonaryGame.players).map(function(socketId) {
+        return {
+            name: scriptonaryGame.players[socketId].name,
+            score: scriptonaryGame.players[socketId].score
+        };
+    });
+    
+    // Sort by score
+    finalScores.sort(function(a, b) { return b.score - a.score; });
+    
+    io.in('scriptionary-room').emit('scriptionary_game_over', { finalScores: finalScores });
 }
